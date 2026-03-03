@@ -27,12 +27,43 @@ The server is configured via environment variables:
 | `GERRIT_BASE_URL` | Yes | Gerrit server URL (e.g. `https://gerrit.example.com`) |
 | `GERRIT_USERNAME` | No | Username for HTTP Basic Auth |
 | `GERRIT_PASSWORD` | No | HTTP password or token |
+| `GERRIT_TOOLS_CONF` | No | `tools.conf` 파일 경로 (미설정 시 서버 디렉토리의 `tools.conf`) |
 
 > **Note**: Without credentials, the server accesses Gerrit anonymously. Authenticated access uses the `/a/` prefix automatically.
 
 ### Generate HTTP Password
 
 In Gerrit, go to **Settings → HTTP Credentials** and click **Generate New Password**.
+
+### Tool Filtering (`tools.conf`)
+
+이 서버는 250개의 도구를 제공하지만, 실제 사용 시에는 필요한 도구만 활성화하는 것을 권장합니다. `tools.conf` 파일로 활성화할 도구를 선택할 수 있습니다.
+
+```conf
+# tools.conf - 주석(#) 해제 시 해당 도구가 활성화됩니다.
+
+# 코드리뷰에 필요한 도구만 활성화
+gerrit_query_changes
+gerrit_get_change
+gerrit_get_change_detail
+gerrit_get_file_diff
+gerrit_get_file_content
+gerrit_set_review
+gerrit_list_revision_files
+
+# 프로젝트 조회는 비활성화
+# gerrit_list_projects
+# gerrit_get_project
+```
+
+| 조건 | 동작 |
+|---|---|
+| `tools.conf` 파일 없음 | 전체 250개 도구 활성화 |
+| 파일 있지만 활성 항목 0개 | 전체 도구 활성화 |
+| 도구 이름 나열 | 해당 도구만 활성화 |
+| 존재하지 않는 도구 이름 | 경고 로그 출력 후 무시 |
+
+서버 디렉토리에 포함된 `tools.conf` 파일에는 전체 도구가 카테고리별로 정리되어 있으며, 코드리뷰 관련 도구만 기본 활성화되어 있습니다.
 
 ## MCP Client Setup
 
@@ -370,8 +401,9 @@ Projects, branches, tags, commits, dashboards, labels, and submit requirements.
 ## Architecture
 
 ```
+├── tools.conf              # Tool activation config (comment/uncomment to toggle)
 src/
-├── index.ts              # MCP server entry point (low-level Server API)
+├── index.ts              # MCP server entry point + tools.conf loader
 ├── gerrit-client.ts      # HTTP client with auth & XSSI handling
 ├── tool-registry.ts      # ToolDefinition interface
 └── tools/
@@ -390,6 +422,7 @@ src/
 - **XSSI prefix stripping**: Automatically removes Gerrit's `)]}'` response prefix
 - **Authenticated access**: Prepends `/a/` path prefix when credentials are provided
 - **URL encoding**: Properly encodes project names, branches, and other identifiers containing special characters (e.g. `/`)
+- **Tool filtering**: `tools.conf` allows activating only needed tools, reducing MCP client overhead from 250 tools to a focused subset
 
 ## Usage Examples
 
