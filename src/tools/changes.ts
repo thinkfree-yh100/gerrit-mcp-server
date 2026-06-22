@@ -1685,7 +1685,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: "gerrit_create_draft_comment",
-    description: "Create a new draft comment on a revision.",
+    description: "Create a new draft comment on a revision (Gerrit uses PUT for create).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1710,7 +1710,7 @@ export const tools: ToolDefinition[] = [
     handler: async (client, params) => {
       const { change_id, revision_id, ...body } = params;
       const rev = (revision_id as string) || "current";
-      return client.post(
+      return client.put(
         `/changes/${e(change_id as string)}/revisions/${e(rev)}/drafts`,
         body
       );
